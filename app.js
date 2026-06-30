@@ -145,7 +145,7 @@ async function fetchGoogleSheetsData() {
         renderTransactions();
         updateChart();
         
-        if (statusText) statusText.innerText = "Đang cập nhật trực tiếp";
+        if (statusText) statusText.innerText = "Live";
     } catch (error) {
         console.error("Lỗi đồng bộ dữ liệu:", error);
         if (statusText) statusText.innerText = "Lỗi đồng bộ (Xem Console)";
