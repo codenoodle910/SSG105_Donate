@@ -1,0 +1,470 @@
+// app.js - Logic điều khiển giao diện, bộ lọc, nạp dữ liệu từ Google Sheets & vẽ biểu đồ
+
+// Cấu hình URL Google Sheets CSV của bạn
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQG7tz_z9LIypAWURURUblXldS73-FiMwOzQbNqmGt_8ktRqPn0ftHSPRAAiZjBgB8zSpp4_u32fOES/pub?output=csv";
+
+// Danh sách giao dịch toàn cục (ban đầu lấy từ dữ liệu mẫu, sau đó ghi đè từ Google Sheets)
+let transactions = [];
+let googleSheetTransactions = []; // Lưu trữ giao dịch gốc từ Google Sheets
+let currentSortOrder = "desc"; // desc = mới nhất, asc = cũ nhất
+let simulationInterval = null;
+let pollingInterval = null;
+let chartInstance = null;
+
+// Hàm định dạng tiền tệ VND
+function formatVND(amount) {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+}
+
+// Loại bỏ dấu tiếng Việt để tìm kiếm chính xác
+function removeVietnameseTones(str) {
+    str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
+    str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
+    str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
+    str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o");
+    str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
+    str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
+    str = str.replace(/đ/g, "d");
+    str = str.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, "A");
+    str = str.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, "E");
+    str = str.replace(/Ì|Í|Ị|B|Ĩ/g, "I");
+    str = str.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, "O");
+    str = str.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, "U");
+    str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
+    str = str.replace(/Đ/g, "D");
+    str = str.replace(/[^a-zA-Z0-9\s]/g, "");
+    return str.toLowerCase().trim();
+}
+
+// Tính toán thời gian tương đối
+function timeAgo(dateString) {
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMs < 0 || diffMins < 1) return "Vừa xong";
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    return `${diffDays} ngày trước`;
+}
+
+// Tạo chữ viết tắt đại diện cho Avatar
+function getAvatarPlaceholder(name) {
+    if (name.includes("Ẩn danh")) return "?";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+        return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
+}
+
+// 解析 CSV (Parse CSV)
+function parseCSV(csvText) {
+    const lines = csvText.split('\n');
+    if (lines.length <= 1) return [];
+    
+    // Header: Ngân hàng,Ngày giao dịch,Số tài khoản,Tài khoản phụ,Code TT,Nội dung thanh toán,Loại,Số tiền,Mã tham chiếu,Lũy kế
+    const parsedTransactions = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Phân tách dấu phẩy tránh bị lỗi nếu nội dung chuyển tiền chứa dấu phẩy
+        const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(col => {
+            let val = col.trim();
+            if (val.startsWith('"') && val.endsWith('"')) {
+                val = val.substring(1, val.length - 1);
+            }
+            return val;
+        });
+        
+        if (columns.length < 9) continue;
+        
+        const bankName = columns[0] || "NH";
+        const dateStr = columns[1] || "";
+        const note = columns[5] || "";
+        const amountStr = columns[7] || "0";
+        const refCode = columns[8] || ("TX" + Math.floor(Math.random() * 100000));
+        
+        const amount = parseFloat(amountStr.replace(/[^0-9.-]+/g, "")) || 0;
+        
+        // Chuyển đổi định dạng ngày "YYYY-MM-DD HH:mm:ss"
+        let dateObj = new Date(dateStr.replace(/-/g, "/"));
+        if (isNaN(dateObj.getTime())) {
+            dateObj = new Date();
+        }
+        
+        // Xác định tên người gửi từ nội dung giao dịch (nếu có tên không dấu viết hoa)
+        let sender = "Nhà hảo tâm";
+        const uppercaseWords = note.match(/[A-Z]{2,}\s[A-Z]{2,}(\s[A-Z]{2,})*/g);
+        if (uppercaseWords && uppercaseWords.length > 0) {
+            sender = uppercaseWords[0];
+        } else {
+            sender = `Nhà hảo tâm (${bankName})`;
+        }
+        
+        parsedTransactions.push({
+            id: refCode,
+            sender: sender,
+            amount: amount,
+            time: dateObj.toISOString(),
+            message: note || `Chuyển khoản qua ngân hàng ${bankName}`,
+            project: "Vùng Cao Yêu Thương"
+        });
+    }
+    return parsedTransactions;
+}
+
+// ----------------------------------------------------
+// TẢI DỮ LIỆU TỪ GOOGLE SHEETS
+// ----------------------------------------------------
+async function fetchGoogleSheetsData() {
+    const statusText = document.querySelector(".status-text");
+    try {
+        const response = await fetch(GOOGLE_SHEET_CSV_URL + "&t=" + new Date().getTime()); // Tránh cache
+        if (!response.ok) throw new Error("Không thể tải tệp Google Sheets");
+        
+        const csvText = await response.text();
+        const sheetTxs = parseCSV(csvText);
+        
+        googleSheetTransactions = sheetTxs;
+        
+        // Nếu không bật giả lập, ghi đè hoàn toàn danh sách giao dịch
+        const simToggle = document.getElementById("simulation-toggle");
+        if (!simToggle || !simToggle.checked) {
+            transactions = [...googleSheetTransactions];
+            
+            updateStats();
+            renderTransactions();
+            updateChart();
+        }
+        
+        if (statusText) statusText.innerText = "Đang cập nhật trực tiếp";
+    } catch (error) {
+        console.error("Lỗi đồng bộ dữ liệu:", error);
+        if (statusText) statusText.innerText = "Lỗi đồng bộ (Xem Console)";
+        
+        // Không dùng dữ liệu mẫu khi lỗi, giữ danh sách trống
+        if (transactions.length === 0) {
+            updateStats();
+            renderTransactions();
+            updateChart();
+        }
+    }
+}
+
+// ----------------------------------------------------
+// CẬP NHẬT STATS (BẢNG THỐNG KÊ)
+// ----------------------------------------------------
+function updateStats() {
+    const totalAmount = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const totalCount = transactions.length;
+    const avgAmount = totalCount > 0 ? Math.round(totalAmount / totalCount) : 0;
+    
+    let lastTxText = "Chưa có";
+    if (totalCount > 0) {
+        const sortedByTime = [...transactions].sort((a, b) => new Date(b.time) - new Date(a.time));
+        lastTxText = timeAgo(sortedByTime[0].time);
+    }
+
+    document.getElementById("total-amount").innerText = formatVND(totalAmount);
+    document.getElementById("total-count").innerText = totalCount.toLocaleString();
+    document.getElementById("avg-amount").innerText = formatVND(avgAmount);
+    document.getElementById("last-time").innerText = lastTxText;
+}
+
+// ----------------------------------------------------
+// HIỂN THỊ DANH SÁCH GIAO DỊCH
+// ----------------------------------------------------
+function renderTransactions() {
+    const searchInput = document.getElementById("search-input").value;
+    const cleanSearchQuery = removeVietnameseTones(searchInput);
+    const filterAmount = document.getElementById("filter-amount").value;
+    const container = document.getElementById("transactions-list");
+    const emptyState = document.getElementById("empty-state");
+    const visibleCountBadge = document.getElementById("visible-count");
+
+    let filtered = transactions.filter(tx => {
+        const cleanSender = removeVietnameseTones(tx.sender);
+        const cleanMsg = removeVietnameseTones(tx.message);
+        const cleanId = tx.id.toLowerCase();
+        const matchesSearch = cleanSender.includes(cleanSearchQuery) || 
+                              cleanMsg.includes(cleanSearchQuery) || 
+                              cleanId.includes(cleanSearchQuery) ||
+                              tx.amount.toString().includes(cleanSearchQuery);
+
+        if (!matchesSearch) return false;
+
+        if (filterAmount === "under-100k") return tx.amount < 100000;
+        if (filterAmount === "100k-500k") return tx.amount >= 100000 && tx.amount <= 500000;
+        if (filterAmount === "500k-2m") return tx.amount > 500000 && tx.amount <= 2000000;
+        if (filterAmount === "over-2m") return tx.amount > 2000000;
+
+        return true;
+    });
+
+    filtered.sort((a, b) => {
+        const dateA = new Date(a.time);
+        const dateB = new Date(b.time);
+        return currentSortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
+    visibleCountBadge.innerText = `${filtered.length} giao dịch`;
+    container.innerHTML = "";
+
+    if (filtered.length === 0) {
+        emptyState.style.display = "block";
+        return;
+    }
+
+    emptyState.style.display = "none";
+
+    filtered.forEach(tx => {
+        const card = document.createElement("div");
+        card.className = "tx-card";
+        
+        const avatarText = getAvatarPlaceholder(tx.sender);
+        const avatarBg = tx.sender.includes("Ẩn danh") ? "#4b5563" : `hsl(${(tx.sender.length * 37) % 360}, 50%, 40%)`;
+
+        card.innerHTML = `
+            <div class="tx-left">
+                <div class="avatar-circle" style="background-color: ${avatarBg}; color: #fff;">
+                    ${avatarText}
+                </div>
+                <div class="tx-info">
+                    <span class="tx-sender">${tx.sender}</span>
+                    <span class="tx-message">${tx.message}</span>
+                    <div class="tx-meta">
+                        <span class="tx-id">#${tx.id}</span>
+                        <span>&bull;</span>
+                        <span>Dự án: ${tx.project}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="tx-right">
+                <span class="tx-amount">+${formatVND(tx.amount)}</span>
+                <span class="tx-time" data-time="${tx.time}">${timeAgo(tx.time)}</span>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// ----------------------------------------------------
+// CẬP NHẬT BIỂU ĐỒ (CHART)
+// ----------------------------------------------------
+function updateChart() {
+    const sortedTimeline = [...transactions].sort((a, b) => new Date(a.time) - new Date(b.time));
+    
+    let cumulativeSum = 0;
+    const chartData = sortedTimeline.map(tx => {
+        cumulativeSum += tx.amount;
+        return {
+            x: new Date(tx.time),
+            y: cumulativeSum
+        };
+    });
+
+    const finalData = chartData.slice(-15);
+    const labels = finalData.map(d => {
+        const t = d.x;
+        return `${t.getHours().toString().padStart(2, '0')}:${t.getMinutes().toString().padStart(2, '0')}:${t.getSeconds().toString().padStart(2, '0')}`;
+    });
+    const values = finalData.map(d => d.y);
+
+    if (chartInstance) {
+        chartInstance.data.labels = labels;
+        chartInstance.data.datasets[0].data = values;
+        chartInstance.update();
+    } else {
+        const ctx = document.getElementById('donationChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Tổng quỹ lũy kế (VND)',
+                    data: values,
+                    borderColor: '#6366f1',
+                    borderWidth: 3,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#ec4899',
+                    pointBorderColor: '#fff',
+                    pointHoverRadius: 6,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af', font: { family: 'Outfit' } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                        ticks: { color: '#9ca3af', font: { family: 'Outfit' },
+                            callback: function(value) {
+                                if (value >= 1000000) return (value / 1000000) + ' Trđ';
+                                if (value >= 1000) return (value / 1000) + ' Kđ';
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// ----------------------------------------------------
+// THIẾT LẬP TRÌNH GIẢ LẬP GIAO DỊCH
+// ----------------------------------------------------
+function startSimulation() {
+    if (simulationInterval) clearInterval(simulationInterval);
+    
+    const speedSeconds = parseInt(document.getElementById("simulation-speed").value);
+    
+    simulationInterval = setInterval(() => {
+        const newTx = generateRandomTransaction();
+        transactions.push(newTx);
+        
+        updateStats();
+        renderTransactions();
+        updateChart();
+        
+        const statusInd = document.querySelector(".status-indicator");
+        statusInd.style.background = "rgba(16, 185, 129, 0.25)";
+        setTimeout(() => {
+            statusInd.style.background = "rgba(16, 185, 129, 0.1)";
+        }, 300);
+
+    }, speedSeconds * 1000);
+}
+
+function stopSimulation() {
+    if (simulationInterval) {
+        clearInterval(simulationInterval);
+        simulationInterval = null;
+    }
+}
+
+// ----------------------------------------------------
+// ĐỒNG BỘ DỮ LIỆU TỰ ĐỘNG (POLLING)
+// ----------------------------------------------------
+function startPolling() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    // Tự động tải lại Google Sheets mỗi 12 giây
+    pollingInterval = setInterval(fetchGoogleSheetsData, 12000);
+}
+
+function stopPolling() {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+}
+
+// ----------------------------------------------------
+// KHỞI TẠO ỨNG DỤNG
+// ----------------------------------------------------
+document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Tải dữ liệu ban đầu từ Google Sheets
+    await fetchGoogleSheetsData();
+    startPolling();
+    
+    // Tự động cập nhật thời gian hiển thị mỗi 30 giây
+    setInterval(() => {
+        document.querySelectorAll(".tx-time").forEach(el => {
+            const dateStr = el.getAttribute("data-time");
+            if (dateStr) el.innerText = timeAgo(dateStr);
+        });
+        updateStats();
+    }, 30000);
+
+    // 2. Lắng nghe thanh tìm kiếm
+    const searchInput = document.getElementById("search-input");
+    const clearSearchBtn = document.getElementById("clear-search");
+    
+    searchInput.addEventListener("input", () => {
+        clearSearchBtn.style.display = searchInput.value.length > 0 ? "block" : "none";
+        renderTransactions();
+    });
+
+    clearSearchBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        clearSearchBtn.style.display = "none";
+        renderTransactions();
+        searchInput.focus();
+    });
+
+    // 3. Lọc theo mệnh giá tiền
+    document.getElementById("filter-amount").addEventListener("change", renderTransactions);
+
+    // 4. Sắp xếp thứ tự thời gian
+    const sortBtn = document.getElementById("sort-order");
+    sortBtn.addEventListener("click", () => {
+        if (currentSortOrder === "desc") {
+            currentSortOrder = "asc";
+            sortBtn.innerHTML = '<i class="fa-solid fa-arrow-up-short-wide"></i> Cũ nhất';
+        } else {
+            currentSortOrder = "desc";
+            sortBtn.innerHTML = '<i class="fa-solid fa-arrow-down-short-wide"></i> Mới nhất';
+        }
+        renderTransactions();
+    });
+
+    // 5. Cấu hình Trình Giả lập
+    const simToggle = document.getElementById("simulation-toggle");
+    const simSpeed = document.getElementById("simulation-speed");
+    const speedDisplay = document.getElementById("speed-display");
+    const statusText = document.querySelector(".status-text");
+    const pulseDot = document.querySelector(".pulse-dot");
+
+    // Mặc định tắt giả lập để ưu tiên xem dữ liệu thật từ SePay/Google Sheets
+    simToggle.checked = false;
+    stopSimulation();
+
+    simToggle.addEventListener("change", () => {
+        if (simToggle.checked) {
+            stopPolling(); // Dừng kéo dữ liệu Google Sheet để tránh xung đột
+            // Copy dữ liệu gốc từ sheet sang để bắt đầu mô phỏng thêm giao dịch mới
+            transactions = [...googleSheetTransactions];
+            
+            startSimulation();
+            statusText.innerText = "Giả lập đang chạy";
+            pulseDot.style.backgroundColor = "var(--accent)";
+            document.querySelector(".status-indicator").style.borderColor = "rgba(236, 72, 153, 0.2)";
+            document.querySelector(".status-indicator").style.background = "rgba(236, 72, 153, 0.1)";
+        } else {
+            stopSimulation();
+            fetchGoogleSheetsData(); // Tải lại dữ liệu thật ngay lập tức
+            startPolling(); // Bật lại tự động kéo dữ liệu thật
+            statusText.innerText = "Đang cập nhật trực tiếp";
+            pulseDot.style.backgroundColor = "var(--secondary)";
+            document.querySelector(".status-indicator").style.borderColor = "rgba(16, 185, 129, 0.2)";
+            document.querySelector(".status-indicator").style.background = "rgba(16, 185, 129, 0.1)";
+        }
+    });
+
+    simSpeed.addEventListener("input", () => {
+        speedDisplay.innerText = `${simSpeed.value}s`;
+        if (simToggle.checked) {
+            startSimulation();
+        }
+    });
+});

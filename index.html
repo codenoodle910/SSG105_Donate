@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Theo Dõi Chuyển Khoản Thời Gian Thực | Vùng Cao Yêu Thương</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="background-decor">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fa-solid fa-hand-holding-heart"></i>
+                </div>
+                <div>
+                    <h1>Vùng Cao Yêu Thương</h1>
+                    <p class="subtitle">Bảng theo dõi đóng góp dự án thời gian thực</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <span class="pulse-dot"></span>
+                <span class="status-text">Đang cập nhật trực tiếp</span>
+            </div>
+        </header>
+
+        <!-- Stats Overview Grid -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon amount-icon">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Tổng Tiền Nhận Được</h3>
+                    <div class="stat-value" id="total-amount">0đ</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon count-icon">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Tổng Lượt Đóng Góp</h3>
+                    <div class="stat-value" id="total-count">0</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon avg-icon">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Đóng Góp Trung Bình</h3>
+                    <div class="stat-value" id="avg-amount">0đ</div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon timer-icon">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Giao Dịch Gần Nhất</h3>
+                    <div class="stat-value" id="last-time">Vừa xong</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Dashboard Workspace -->
+        <div class="dashboard-body">
+            
+            <!-- Left Side: Controls, Visualizations -->
+            <aside class="sidebar-panel">
+                <!-- Simulation Controller -->
+                <div class="glass-panel control-panel">
+                    <h3><i class="fa-solid fa-sliders"></i> Trình Giả Lập</h3>
+                    <p class="panel-desc">Mô phỏng các lượt chuyển khoản mới chuyển vào tài khoản dự án.</p>
+                    
+                    <div class="control-row">
+                        <label for="simulation-toggle">Bật giả lập nhận tiền</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="simulation-toggle">
+                            <span class="slider"></span>
+                        </div>
+                    </div>
+
+                    <div class="control-row speed-control">
+                        <label for="simulation-speed">Tần suất giao dịch (mỗi 5s)</label>
+                        <input type="range" id="simulation-speed" min="2" max="15" value="5">
+                        <span class="speed-value" id="speed-display">5s</span>
+                    </div>
+                </div>
+
+                <!-- Visualization Panel -->
+                <div class="glass-panel chart-panel">
+                    <h3><i class="fa-solid fa-chart-pie"></i> Thống Kê Dòng Tiền</h3>
+                    <div class="chart-container">
+                        <canvas id="donationChart"></canvas>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Right Side: Transactions & Search -->
+            <main class="main-panel">
+                <div class="glass-panel transactions-panel">
+                    <div class="panel-header">
+                        <h2><i class="fa-solid fa-receipt"></i> Lịch Sử Giao Dịch</h2>
+                        <span class="badge" id="visible-count">0 giao dịch</span>
+                    </div>
+
+                    <!-- Search and Filters -->
+                    <div class="filter-bar">
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="search-input" placeholder="Tìm kiếm tên, nội dung hoặc mã giao dịch...">
+                            <button class="clear-btn" id="clear-search"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <div class="select-wrapper">
+                                <select id="filter-amount">
+                                    <option value="all">Mọi mệnh giá</option>
+                                    <option value="under-100k">Dưới 100Kđ</option>
+                                    <option value="100k-500k">100Kđ - 500Kđ</option>
+                                    <option value="500k-2m">500Kđ - 2Trđ</option>
+                                    <option value="over-2m">Trên 2Trđ</option>
+                                </select>
+                            </div>
+                            <button class="sort-btn" id="sort-order" data-order="desc" title="Đổi thứ tự thời gian">
+                                <i class="fa-solid fa-arrow-down-short-wide"></i> Mới nhất
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- List container -->
+                    <div class="transactions-container">
+                        <div class="transactions-list" id="transactions-list">
+                            <!-- JS will inject items here -->
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div class="empty-state" id="empty-state" style="display: none;">
+                            <div class="empty-icon">
+                                <i class="fa-solid fa-magnifying-glass-minus"></i>
+                            </div>
+                            <h3>Không tìm thấy giao dịch nào</h3>
+                            <p>Hãy thử tìm kiếm với từ khóa khác hoặc điều chỉnh bộ lọc.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>&copy; 2026 Vùng Cao Yêu Thương. Trang web mã nguồn mở được tối ưu hiển thị trên GitHub Pages.</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
