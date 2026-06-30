@@ -133,15 +133,11 @@ async function fetchGoogleSheetsData() {
         
         googleSheetTransactions = sheetTxs;
         
-        // Nếu không bật giả lập, ghi đè hoàn toàn danh sách giao dịch
-        const simToggle = document.getElementById("simulation-toggle");
-        if (!simToggle || !simToggle.checked) {
-            transactions = [...googleSheetTransactions];
-            
-            updateStats();
-            renderTransactions();
-            updateChart();
-        }
+        transactions = [...googleSheetTransactions];
+        
+        updateStats();
+        renderTransactions();
+        updateChart();
         
         if (statusText) statusText.innerText = "Đang cập nhật trực tiếp";
     } catch (error) {
@@ -332,38 +328,6 @@ function updateChart() {
 }
 
 // ----------------------------------------------------
-// THIẾT LẬP TRÌNH GIẢ LẬP GIAO DỊCH
-// ----------------------------------------------------
-function startSimulation() {
-    if (simulationInterval) clearInterval(simulationInterval);
-    
-    const speedSeconds = parseInt(document.getElementById("simulation-speed").value);
-    
-    simulationInterval = setInterval(() => {
-        const newTx = generateRandomTransaction();
-        transactions.push(newTx);
-        
-        updateStats();
-        renderTransactions();
-        updateChart();
-        
-        const statusInd = document.querySelector(".status-indicator");
-        statusInd.style.background = "rgba(16, 185, 129, 0.25)";
-        setTimeout(() => {
-            statusInd.style.background = "rgba(16, 185, 129, 0.1)";
-        }, 300);
-
-    }, speedSeconds * 1000);
-}
-
-function stopSimulation() {
-    if (simulationInterval) {
-        clearInterval(simulationInterval);
-        simulationInterval = null;
-    }
-}
-
-// ----------------------------------------------------
 // ĐỒNG BỘ DỮ LIỆU TỰ ĐỘNG (POLLING)
 // ----------------------------------------------------
 function startPolling() {
@@ -426,45 +390,5 @@ document.addEventListener("DOMContentLoaded", async () => {
             sortBtn.innerHTML = '<i class="fa-solid fa-arrow-down-short-wide"></i> Mới nhất';
         }
         renderTransactions();
-    });
-
-    // 5. Cấu hình Trình Giả lập
-    const simToggle = document.getElementById("simulation-toggle");
-    const simSpeed = document.getElementById("simulation-speed");
-    const speedDisplay = document.getElementById("speed-display");
-    const statusText = document.querySelector(".status-text");
-    const pulseDot = document.querySelector(".pulse-dot");
-
-    // Mặc định tắt giả lập để ưu tiên xem dữ liệu thật từ SePay/Google Sheets
-    simToggle.checked = false;
-    stopSimulation();
-
-    simToggle.addEventListener("change", () => {
-        if (simToggle.checked) {
-            stopPolling(); // Dừng kéo dữ liệu Google Sheet để tránh xung đột
-            // Copy dữ liệu gốc từ sheet sang để bắt đầu mô phỏng thêm giao dịch mới
-            transactions = [...googleSheetTransactions];
-            
-            startSimulation();
-            statusText.innerText = "Giả lập đang chạy";
-            pulseDot.style.backgroundColor = "var(--accent)";
-            document.querySelector(".status-indicator").style.borderColor = "rgba(236, 72, 153, 0.2)";
-            document.querySelector(".status-indicator").style.background = "rgba(236, 72, 153, 0.1)";
-        } else {
-            stopSimulation();
-            fetchGoogleSheetsData(); // Tải lại dữ liệu thật ngay lập tức
-            startPolling(); // Bật lại tự động kéo dữ liệu thật
-            statusText.innerText = "Đang cập nhật trực tiếp";
-            pulseDot.style.backgroundColor = "var(--secondary)";
-            document.querySelector(".status-indicator").style.borderColor = "rgba(16, 185, 129, 0.2)";
-            document.querySelector(".status-indicator").style.background = "rgba(16, 185, 129, 0.1)";
-        }
-    });
-
-    simSpeed.addEventListener("input", () => {
-        speedDisplay.innerText = `${simSpeed.value}s`;
-        if (simToggle.checked) {
-            startSimulation();
-        }
     });
 });
