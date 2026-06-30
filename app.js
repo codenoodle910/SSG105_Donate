@@ -3,6 +3,12 @@
 // Cấu hình URL Google Sheets CSV của bạn
 const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQG7tz_z9LIypAWURURUblXldS73-FiMwOzQbNqmGt_8ktRqPn0ftHSPRAAiZjBgB8zSpp4_u32fOES/pub?output=csv";
 
+// CẤU HÌNH TÀI KHOẢN NHẬN TIỀN CỦA BẠN (DÙNG ĐỂ TẠO VIETQR ĐỘNG)
+const RECEIVER_BANK_ID = "MB"; // Ví dụ: MB, VCB, ACB, TCB, VPB...
+const RECEIVER_ACCOUNT_NO = "3055999999999"; // Số tài khoản nhận tiền
+const RECEIVER_ACCOUNT_NAME = "VUNG CAO YEU THUONG"; // Tên chủ tài khoản viết hoa không dấu
+const DONATION_GOAL = 3000000; // Mục tiêu quyên góp (3.000.000đ)
+
 // Danh sách giao dịch toàn cục (ban đầu lấy từ dữ liệu mẫu, sau đó ghi đè từ Google Sheets)
 let transactions = [];
 let googleSheetTransactions = []; // Lưu trữ giao dịch gốc từ Google Sheets
@@ -171,6 +177,21 @@ function updateStats() {
     document.getElementById("total-count").innerText = totalCount.toLocaleString();
     document.getElementById("avg-amount").innerText = formatVND(avgAmount);
     document.getElementById("last-time").innerText = lastTxText;
+
+    // Cập nhật thanh tiến trình mục tiêu
+    const progressPercent = Math.min(100, Math.round((totalAmount / DONATION_GOAL) * 100)) || 0;
+    const progressBar = document.getElementById("goal-progress-bar");
+    if (progressBar) {
+        progressBar.style.width = progressPercent + "%";
+    }
+    const goalPercentEl = document.getElementById("goal-percent");
+    if (goalPercentEl) {
+        goalPercentEl.innerText = progressPercent + "%";
+    }
+    const goalCurrentEl = document.getElementById("goal-current");
+    if (goalCurrentEl) {
+        goalCurrentEl.innerText = `Đã đạt: ${formatVND(totalAmount)}`;
+    }
 }
 
 // ----------------------------------------------------
@@ -179,7 +200,6 @@ function updateStats() {
 function renderTransactions() {
     const searchInput = document.getElementById("search-input").value;
     const cleanSearchQuery = removeVietnameseTones(searchInput);
-    const filterAmount = document.getElementById("filter-amount").value;
     const container = document.getElementById("transactions-list");
     const emptyState = document.getElementById("empty-state");
     const visibleCountBadge = document.getElementById("visible-count");
@@ -193,14 +213,7 @@ function renderTransactions() {
                               cleanId.includes(cleanSearchQuery) ||
                               tx.amount.toString().includes(cleanSearchQuery);
 
-        if (!matchesSearch) return false;
-
-        if (filterAmount === "under-100k") return tx.amount < 100000;
-        if (filterAmount === "100k-500k") return tx.amount >= 100000 && tx.amount <= 500000;
-        if (filterAmount === "500k-2m") return tx.amount > 500000 && tx.amount <= 2000000;
-        if (filterAmount === "over-2m") return tx.amount > 2000000;
-
-        return true;
+        return matchesSearch;
     });
 
     filtered.sort((a, b) => {
@@ -376,9 +389,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         searchInput.focus();
     });
 
-    // 3. Lọc theo mệnh giá tiền
-    document.getElementById("filter-amount").addEventListener("change", renderTransactions);
-
     // 4. Sắp xếp thứ tự thời gian
     const sortBtn = document.getElementById("sort-order");
     sortBtn.addEventListener("click", () => {
@@ -391,4 +401,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         renderTransactions();
     });
+
+    // 5. Tạo và hiển thị mã QR tĩnh khi tải trang
+    const qrImg = document.getElementById("static-qr-img");
+    if (qrImg) {
+        // Tạo link ảnh VietQR tĩnh (chỉ hiển thị mã QR thuần túy - template qr_only)
+        const staticMemo = "UnghoVungCaoYeuThuong";
+        qrImg.src = `https://img.vietqr.io/image/${RECEIVER_BANK_ID}-${RECEIVER_ACCOUNT_NO}-qr_only.png?addInfo=${encodeURIComponent(staticMemo)}&accountName=${encodeURIComponent(RECEIVER_ACCOUNT_NAME)}`;
+    }
 });
