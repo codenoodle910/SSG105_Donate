@@ -174,6 +174,7 @@ async function fetchGoogleSheetsData() {
         updateStats();
         renderTransactions();
         updateChart();
+        updateLeaderboard();
         
         if (statusText) statusText.innerText = "Live";
     } catch (error) {
@@ -185,6 +186,7 @@ async function fetchGoogleSheetsData() {
             updateStats();
             renderTransactions();
             updateChart();
+            updateLeaderboard();
         }
     }
 }
@@ -471,3 +473,62 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     }
 });
+
+// ----------------------------------------------------
+// CẬP NHẬT BẢNG VINH DANH (TOP 1 TÀI TRỢ)
+// ----------------------------------------------------
+function updateLeaderboard() {
+    const listEl = document.getElementById("leaderboard-list");
+    if (!listEl) return;
+
+    // 1. Gom nhóm tổng tiền đóng góp theo tên người gửi (bỏ qua "Người ẩn danh")
+    const groupedDonors = {};
+    transactions.forEach(tx => {
+        if (tx.sender && tx.sender !== "Người ẩn danh") {
+            groupedDonors[tx.sender] = (groupedDonors[tx.sender] || 0) + tx.amount;
+        }
+    });
+
+    const donorNames = Object.keys(groupedDonors);
+
+    // Nếu chưa có ai quyên góp có tên, hiển thị trạng thái trống
+    if (donorNames.length === 0) {
+        listEl.innerHTML = `<div class="leaderboard-empty">Chưa có nhà tài trợ vinh danh</div>`;
+        return;
+    }
+
+    // 2. Tìm giá trị quyên góp lớn nhất
+    let maxAmount = 0;
+    donorNames.forEach(name => {
+        if (groupedDonors[name] > maxAmount) {
+            maxAmount = groupedDonors[name];
+        }
+    });
+
+    // 3. Lọc danh sách những người đạt mức tiền cao nhất (đồng hạng 1)
+    const topDonors = donorNames.filter(name => groupedDonors[name] === maxAmount);
+    topDonors.sort(); // Sắp xếp theo thứ tự bảng chữ cái alphabet
+
+    listEl.innerHTML = "";
+    
+    // 4. Vẽ giao diện cho từng người dẫn đầu
+    topDonors.forEach(name => {
+        const donorCard = document.createElement("div");
+        donorCard.className = "top-donor-card";
+        donorCard.innerHTML = `
+            <div class="donor-info-wrapper">
+                <div class="donor-crown">
+                    <i class="fa-solid fa-crown"></i>
+                </div>
+                <div class="donor-name-details">
+                    <span class="donor-name">${name}</span>
+                    <span class="donor-label">Dẫn đầu đóng góp</span>
+                </div>
+            </div>
+            <div class="donor-total-amount">
+                ${formatVND(maxAmount)}
+            </div>
+        `;
+        listEl.appendChild(donorCard);
+    });
+}

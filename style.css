@@ -1169,3 +1169,101 @@ footer.app-footer p {
     background: rgba(255, 255, 255, 0.25);
 }
 
+/* Leaderboard Panel styles */
+.leaderboard-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.leaderboard-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.top-donor-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1), rgba(251, 191, 36, 0.02));
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.1);
+    position: relative;
+    overflow: hidden;
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 4px 15px rgba(251, 191, 36, 0.1);
+        border-color: rgba(251, 191, 36, 0.25);
+    }
+    50% {
+        box-shadow: 0 4px 22px rgba(251, 191, 36, 0.22);
+        border-color: rgba(251, 191, 36, 0.45);
+    }
+}
+
+.top-donor-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #fbbf24;
+}
+
+.donor-info-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.donor-crown {
+    font-size: 1.35rem;
+    color: #fbbf24;
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5));
+}
+
+.donor-name-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.donor-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: #fff;
+    letter-spacing: -0.01em;
+}
+
+.donor-label {
+    font-size: 0.75rem;
+    color: rgba(251, 191, 36, 0.85);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.donor-total-amount {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #fbbf24;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.2);
+}
+
+.leaderboard-empty {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 1rem 0;
+    border: 1px dashed var(--glass-border);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.01);
+}
+
