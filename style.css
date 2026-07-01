@@ -22,7 +22,7 @@
     --radius-md: 12px;
     --radius-sm: 8px;
     
-    --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-sans: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -949,5 +949,223 @@ footer.app-footer p {
         opacity: 1;
         transform: scale(1);
     }
+}
+
+/* About Button Style */
+.about-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.2s ease;
+}
+
+.about-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 7, 12, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding: 1.5rem;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Modal Content Dialog Box */
+.modal-content {
+    width: 100%;
+    max-width: 650px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+    transform: translateY(30px) scale(0.97);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    background: rgba(17, 24, 39, 0.85); /* Slightly darker for readability */
+}
+
+.modal-overlay.active .modal-content {
+    transform: translateY(0) scale(1);
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    transform: rotate(90deg);
+}
+
+.modal-header {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 1rem;
+}
+
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(to right, #ffffff, #c7d2fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.modal-section h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-section p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+}
+
+.modal-section p:last-child {
+    margin-bottom: 0;
+}
+
+/* Allocation List Styles */
+.allocation-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+}
+
+.allocation-list li {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    position: relative;
+    padding-left: 1.25rem;
+    line-height: 1.5;
+}
+
+.allocation-list li::before {
+    content: "\f00c"; /* FontAwesome check */
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    position: absolute;
+    left: 0;
+    top: 2px;
+    color: var(--secondary);
+    font-size: 0.75rem;
+}
+
+/* Contact Info Layout */
+.contact-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    background: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+}
+
+.contact-info p {
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary);
+}
+
+.contact-info p i {
+    width: 16px;
+    color: var(--primary);
+}
+
+.contact-info a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.contact-info a:hover {
+    text-decoration: underline;
+}
+
+/* Custom Scrollbar for Modal Dialog */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
 }
 

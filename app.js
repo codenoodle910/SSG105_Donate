@@ -67,6 +67,42 @@ function getAvatarPlaceholder(name) {
     return name[0].toUpperCase();
 }
 
+// Hàm trích xuất tên người gửi từ nội dung chuyển tiền
+function extractSenderName(note) {
+    if (!note) return "Người ẩn danh";
+    
+    // Đưa về viết hoa để đồng bộ xử lý
+    let cleanNote = note.toUpperCase();
+    
+    // Loại bỏ các từ khóa giao dịch phổ biến của ngân hàng/sepay
+    const keywordsToRemove = [
+        "CHUYEN KHOAN", "CHUYEN TIEN", "CHUYENKHOAN", "CHUYENTIEN",
+        "THANH TOAN", "THANHTOAN", "QUYEN GOP", "QUYENGOP",
+        "UNG HO", "UNGHO", "GOP QUY", "GOPQUY", "TIEP NHAN", "TIEPNHAN",
+        "MOMO", "ZALOPAY", "VIETQR", "SEPAY", "IBFT", "FAST", "NAPAS",
+        "CK ", "CT ", "GD ", "ND ", "TK ", "STK ", "MC "
+    ];
+    
+    keywordsToRemove.forEach(kw => {
+        cleanNote = cleanNote.split(kw).join(" ");
+    });
+    
+    // Tìm chuỗi các từ viết hoa liên tiếp có độ dài từ 2 từ trở lên đại diện cho tên (ví dụ: NGUYEN VAN A)
+    const matches = cleanNote.match(/\b[A-Z]{2,}\b(\s+\b[A-Z]{2,}\b){1,3}/g);
+    
+    if (matches && matches.length > 0) {
+        let name = matches[0].trim();
+        // Loại bỏ nếu tên chỉ chứa các từ viết tắt tên ngân hàng phổ biến
+        const bankCodes = ["VCB", "MBB", "ACB", "TCB", "BIDV", "CTG", "AGR", "VPB", "TPB", "MSB", "SHB", "HDB", "VIB", "LPB", "MBBANK"];
+        if (bankCodes.includes(name)) {
+            return "Người ẩn danh";
+        }
+        return name;
+    }
+    
+    return "Người ẩn danh";
+}
+
 // 解析 CSV (Parse CSV)
 function parseCSV(csvText) {
     const lines = csvText.split('\n');
@@ -104,14 +140,8 @@ function parseCSV(csvText) {
             dateObj = new Date();
         }
         
-        // Xác định tên người gửi từ nội dung giao dịch (nếu có tên không dấu viết hoa)
-        let sender = "Nhà hảo tâm";
-        const uppercaseWords = note.match(/[A-Z]{2,}\s[A-Z]{2,}(\s[A-Z]{2,})*/g);
-        if (uppercaseWords && uppercaseWords.length > 0) {
-            sender = uppercaseWords[0];
-        } else {
-            sender = `Nhà hảo tâm (${bankName})`;
-        }
+        // Xác định tên người gửi thông qua hàm trích xuất thông minh
+        const sender = extractSenderName(note);
         
         parsedTransactions.push({
             id: refCode,
@@ -322,11 +352,11 @@ function updateChart() {
                 scales: {
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#9ca3af', font: { family: 'Outfit' } }
+                        ticks: { color: '#9ca3af', font: { family: 'Be Vietnam Pro' } }
                     },
                     y: {
                         grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                        ticks: { color: '#9ca3af', font: { family: 'Outfit' },
+                        ticks: { color: '#9ca3af', font: { family: 'Be Vietnam Pro' },
                             callback: function(value) {
                                 if (value >= 1000000) return (value / 1000000) + ' Trđ';
                                 if (value >= 1000) return (value / 1000) + ' Kđ';
@@ -408,5 +438,36 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Tạo link ảnh VietQR tĩnh (chỉ hiển thị mã QR thuần túy - template qr_only)
         const staticMemo = "UnghoVungCaoYeuThuong";
         qrImg.src = `https://img.vietqr.io/image/${RECEIVER_BANK_ID}-${RECEIVER_ACCOUNT_NO}-qr_only.png?addInfo=${encodeURIComponent(staticMemo)}&accountName=${encodeURIComponent(RECEIVER_ACCOUNT_NAME)}`;
+    }
+
+    // 6. Xử lý đóng/mở Modal Giới thiệu
+    const aboutModal = document.getElementById("about-modal");
+    const openAboutBtn = document.getElementById("open-about-btn");
+    const closeAboutBtn = document.getElementById("close-about-btn");
+
+    if (aboutModal && openAboutBtn && closeAboutBtn) {
+        // Mở modal
+        openAboutBtn.addEventListener("click", () => {
+            aboutModal.classList.add("active");
+        });
+
+        // Đóng modal bằng nút Close (X)
+        closeAboutBtn.addEventListener("click", () => {
+            aboutModal.classList.remove("active");
+        });
+
+        // Đóng modal khi click ra ngoài vùng hộp thoại
+        aboutModal.addEventListener("click", (e) => {
+            if (e.target === aboutModal) {
+                aboutModal.classList.remove("active");
+            }
+        });
+
+        // Đóng modal khi nhấn phím ESC
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && aboutModal.classList.contains("active")) {
+                aboutModal.classList.remove("active");
+            }
+        });
     }
 });

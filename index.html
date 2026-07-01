@@ -8,7 +8,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -39,6 +39,9 @@
                 </div>
             </div>
             <div class="header-actions">
+                <button id="open-about-btn" class="about-btn">
+                    <i class="fa-solid fa-circle-info"></i> Giới thiệu
+                </button>
                 <a href="https://www.facebook.com/profile.php?id=61590577805544" target="_blank" class="facebook-link">
                     <i class="fa-brands fa-facebook"></i> Fanpage
                 </a>
@@ -176,6 +179,41 @@
         </div>
 
 
+    </div>
+
+    <!-- About Project Modal Dialog -->
+    <div class="modal-overlay" id="about-modal">
+        <div class="modal-content glass-panel">
+            <button class="modal-close-btn" id="close-about-btn"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-circle-info" style="color: var(--primary);"></i> Giới Thiệu Dự Án</h2>
+                <p class="subtitle">Thông tin chi tiết về chiến dịch Vùng Cao Yêu Thương</p>
+            </div>
+            
+            <div class="modal-body">
+                <section class="modal-section">
+                    <h3><i class="fa-solid fa-heart" style="color: var(--accent);"></i> Sứ Mệnh Của Chúng Tôi</h3>
+                    <p>Chiến dịch <strong>"Vùng Cao Yêu Thương"</strong> được thành lập với mong muốn mang lại niềm vui, tri thức và điều kiện sống tốt hơn cho các em học sinh tại các điểm trường vùng sâu, vùng xa, biên giới còn gặp nhiều khó khăn.</p>
+                    <p>Mỗi đóng góp của bạn, dù lớn hay nhỏ, đều là những viên gạch vững chắc giúp chúng tôi hiện thực hóa ước mơ có một phòng học ấm áp, đủ sách vở và quần áo ấm cho các em trong mùa đông tới.</p>
+                </section>
+                
+                <section class="modal-section">
+                    <h3><i class="fa-solid fa-chart-pie" style="color: var(--secondary);"></i> Phân Bổ Nguồn Quỹ</h3>
+                    <p>Kế hoạch phân bổ quỹ sẽ cập nhật sau khi kết thúc chiến dịch kêu gọi ủng hộ.</p>
+                </section>
+
+                <section class="modal-section">
+                    <h3><i class="fa-solid fa-envelope" style="color: #06b6d4;"></i> Thông Tin Liên Hệ</h3>
+                    <p>Mọi thắc mắc hoặc cần hỗ trợ thông tin vui lòng liên hệ:</p>
+                    <div class="contact-info">
+                        <p><i class="fa-solid fa-phone"></i> Hotline: <strong>0888330036</strong></p>
+                        <p><i class="fa-solid fa-envelope"></i> Email: <strong>hhiep1905@gmail.com</strong></p>
+                        <p><i class="fa-brands fa-facebook"></i> Facebook: <a href="https://www.facebook.com/profile.php?id=61590577805544" target="_blank">Fanpage Nhóm</a></p>
+                    </div>
+                </section>
+            </div>
+        </div>
     </div>
 
     <!-- Scripts -->
