@@ -787,6 +787,28 @@ footer.app-footer p {
         align-items: stretch;
         gap: 0.75rem;
         padding: 0.85rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .logo-area {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .logo-area > div:last-child {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .logo-area h1 {
+        font-size: 1.2rem;
+    }
+
+    .logo-area .subtitle {
+        font-size: 0.72rem;
+        white-space: normal;
+        word-break: break-word;
     }
 
     .header-actions {
