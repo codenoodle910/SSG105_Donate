@@ -268,14 +268,8 @@ function renderTransactions() {
         const card = document.createElement("div");
         card.className = "tx-card";
         
-        const avatarText = getAvatarPlaceholder(tx.sender);
-        const avatarBg = tx.sender.includes("Ẩn danh") ? "#4b5563" : `hsl(${(tx.sender.length * 37) % 360}, 50%, 40%)`;
-
         card.innerHTML = `
             <div class="tx-left">
-                <div class="avatar-circle" style="background-color: ${avatarBg}; color: #fff;">
-                    ${avatarText}
-                </div>
                 <div class="tx-info">
                     <span class="tx-sender">${tx.sender}</span>
                     <span class="tx-message">${tx.message}</span>
